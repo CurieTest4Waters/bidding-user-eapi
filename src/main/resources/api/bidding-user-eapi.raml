@@ -1,0 +1,71 @@
+#%RAML 1.0
+title: bidding-user-eapi
+version: v1
+mediaType: [ application/json]
+types:
+  bidSummary: !include types/biddingSummaryOutput.raml
+  bidDetails: !include types/biddingDetailsOutput.raml
+ 
+
+
+/biddings:
+  get:
+   description: "Get summary of all biddings"
+   responses:
+      200: 
+        description: "Returns List of Biddings"
+        body:
+          type: bidSummary[]
+          example: |
+              [
+                {
+                  "bidding_id": 0,
+                  "bidding_start_date": "2021-01-01T00:00:00.000Z",
+                  "bidding_end_date": "2021-01-31T00:00:00.000Z",
+                  "bidding_status": "Closed",
+                  "highest_bid_amt": 100
+                }
+              ]
+
+
+/biddings/{biddingId}:
+  get:
+   description: "Get details of bidding"
+   responses:
+      200: 
+        description: "Returns Bidding details"
+        body:
+          type: bidDetails
+          example: |
+                {
+                  "bidding_id": 0,
+                  "product_id": 0,
+                  "product_name":"ABC",
+                  "product_amt": 100,
+                  "bidding_start_date": "2021-01-01T00:00:00.000Z",
+                  "bidding_end_date": "2021-01-31T00:00:00.000Z",
+                  "bidding_status": "Closed",
+                  "highest_bid_amt": 100
+                }
+  post:
+    description: "submit a new bid"
+    body:
+      type: object
+      properties:
+        bid_amt: integer
+      example: |
+        {
+          "bid_amt":100
+        }
+    responses:
+      200:
+        body:
+          type: object
+          properties:
+            bid_dt: datetime
+            bid_amt: integer
+          example: |
+            {
+              "bid_dt": "2021-01-01T00:00:00.000Z",
+              "bid_amt": 100
+            }   

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+    <http:listener-config name="bidding-user-eapi-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="${secure::http.port}" />
+    </http:listener-config>
+    <apikit:config name="bidding-user-eapi-config" api="bidding-user-eapi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <http:request-config name="HTTP_bidding_configuration" doc:name="HTTP Request configuration" doc:id="4645d83a-f5ea-4edf-a38c-730c2d589088" >
+		<http:request-connection host="${secure::bidingservice.url}" />
+	</http:request-config>
+	<configuration doc:name="Configuration" doc:id="3822f805-b926-4e15-8d71-7e88fb079763" defaultErrorHandler-ref="global_Error_Handler" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="b3aaa490-d297-452f-a1f0-956cbfc96eda" file="${env}-config.properties" key="myMulesoftInterview" />
+	<flow name="bidding-user-eapi-main">
+        <http:listener config-ref="bidding-user-eapi-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="bidding-user-eapi-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="bidding-user-eapi-console">
+        <http:listener config-ref="bidding-user-eapi-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="bidding-user-eapi-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\biddings:bidding-user-eapi-config">
+        <http:request method="GET" doc:name="Request" doc:id="051a7bf2-eac9-4403-ac44-eee71257aae2" config-ref="HTTP_bidding_configuration" url="http://${secure::bidingservice.url}/api/biddings"/>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map(
+  {
+    bidding_id: $.bidding_id,
+    bidding_start_date: $.bidding_strt_dt,
+    bidding_end_date: $.bidding_end_dt,
+    bidding_status: if($.bidding_end_dt < now()) "Closed" else 
+    if($.bidding_strt_dt > now()) "Not Started" else
+     "Running",
+    highest_bid_amt: $.highest_bidding_amt
+  }
+)]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\biddings\(biddingId):bidding-user-eapi-config">
+        <set-variable value="#[attributes.uriParams.'biddingId']" doc:name="Set Variable" doc:id="9c915bbb-7827-4f9a-80ee-00fd14d29384" variableName="vbiddingId"/>
+		<http:request method="GET" doc:name="Request" doc:id="0f7c52a8-3fb9-4aad-98c4-8c16a397cf1c" config-ref="HTTP_bidding_configuration" url="http://${secure::bidingservice.url}/api/biddings/{biddingId}">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	biddingId : vars.vbiddingId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  bidding_id: payload.bidding_summary.bidding_id,
+  product_id: payload.product_summary.product_id,
+  product_name: payload.product_summary.product_name,
+  product_amt: payload.product_summary.product_amt,
+  bidding_start_date: payload.bidding_summary.bidding_strt_dt,
+  bidding_end_date: payload.bidding_summary.bidding_end_dt,
+  bidding_status: if(payload.bidding_summary.bidding_end_dt < now()) "Closed" else 
+    if(payload.bidding_summary.bidding_strt_dt > now()) "Not Started" else
+     "Running",
+  highest_bid_amt: payload.bidding_summary.highest_bidding_amt
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\biddings\(biddingId):application\json:bidding-user-eapi-config">
+        <set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	bid_dt: now(),&#10;	bid_amt: payload.bid_amt,&#10;	biddingId: attributes.uriParams.'biddingId'	&#10;}]" doc:name="Set Variable" doc:id="0ad9ba3f-3641-4159-a59c-51e4b2da81e1" variableName="vbidValues"/>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0 
+output application/json
+---
+{
+	"bidding_id": vars.vbidValues.biddingId as Number,
+	"user_id": (attributes.headers.'user_id') as Number,
+	"bid_dt": vars.vbidValues.bid_dt,
+	"bid_amt":vars.vbidValues.bid_amt
+}
+]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+            </ee:variables>
+        </ee:transform>
+		<http:request method="POST" doc:name="Request" doc:id="4b894e55-f270-4faf-924c-d5a32a6adb1c" config-ref="HTTP_bidding_configuration" url="http://${secure::bidingservice.url}/api/biddings/{biddingId}">
+			<http:uri-params ><![CDATA[#[{
+	biddingId: vars.vbidValues.biddingId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  bid_dt: vars.vbidValues.bid_dt,
+  bid_amt: vars.vbidValues.bid_amt}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+	<error-handler name="global_Error_Handler" doc:id="49981cb6-fa4d-4e50-b828-910349f1cfb9" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9f4ccbfc-3271-4545-9ad5-42ee8b548233" type="HTTP:TIMEOUT">
+			<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"code": "HTTP Error",&#10;	"message": "Not able to connect service at this time! Please try after some time."&#10;}]' doc:name="Set Payload" doc:id="ac11372a-71c1-4344-90cb-e317a8177647" />
+			</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1d8cef48-545d-419d-9138-ff8fea4da9aa" type="EXPRESSION">
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"code": "Missing required values",&#10;	"message": "Missing User or bidding details. Please check the value and try again!"&#10;}]' doc:name="Set Payload" doc:id="39457a2d-0f52-4794-8d5a-8cb8e3c90641" />
+			</on-error-propagate>
+	</error-handler>
+</mule>
